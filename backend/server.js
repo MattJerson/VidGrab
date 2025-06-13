@@ -81,7 +81,7 @@ app.get("/api/download", async (req, res) => {
 
     // 🔁 Otherwise fallback to yt-dlp for YT, FB, IG
     const { stdout } = await asyncExec(
-      `python -m yt_dlp -j --no-warnings --merge-output-format mp4 "${videoUrl}"`
+      `python3 -m yt_dlp -j --no-warnings --merge-output-format mp4 --cookies cookies.txt "${videoUrl}"`
     );
     const json = JSON.parse(stdout);
 
