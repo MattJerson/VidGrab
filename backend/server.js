@@ -217,8 +217,6 @@ app.get("/api/stream/mp4", async (req, res) => {
   }).pipe(res);
 });
 
-const fetch = require("node-fetch");
-
 app.get("/api/proxy", async (req, res) => {
   const mediaUrl = req.query.url;
   const fileName = req.query.name || `video.mp4`;
