@@ -225,15 +225,45 @@ app.get("/api/proxy", (req, res) => {
 
   if (!mediaUrl) return res.status(400).send("Missing media URL");
 
+  // 🔹 Dynamically apply Referer/Origin headers based on media source
+  const getHeadersForPlatform = (url) => {
+    if (url.includes("tiktok.com")) {
+      return {
+        Referer: "https://www.tiktok.com/",
+        Origin: "https://www.tiktok.com/",
+      };
+    }
+    if (url.includes("youtube.com") || url.includes("googlevideo.com")) {
+      return {
+        Referer: "https://www.youtube.com/",
+        Origin: "https://www.youtube.com/",
+      };
+    }
+    if (url.includes("facebook.com") || url.includes("fbcdn.net")) {
+      return {
+        Referer: "https://www.facebook.com/",
+        Origin: "https://www.facebook.com/",
+      };
+    }
+    if (url.includes("instagram.com") || url.includes("cdninstagram")) {
+      return {
+        Referer: "https://www.instagram.com/",
+        Origin: "https://www.instagram.com/",
+      };
+    }
+    return {}; // default fallback
+  };
+
+  const platformHeaders = getHeadersForPlatform(mediaUrl);
+
   const options = {
     headers: {
       "User-Agent":
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
-      Referer: "https://www.tiktok.com/",
-      Origin: "https://www.tiktok.com",
       Accept: "*/*",
       "Accept-Encoding": "identity",
       Connection: "keep-alive",
+      ...platformHeaders,
     },
   };
 
@@ -244,13 +274,23 @@ app.get("/api/proxy", (req, res) => {
     const contentType =
       stream.headers["content-type"] || "application/octet-stream";
     const ext = contentType.split("/")[1] || "mp4";
-    const finalName = fileName || `video.${ext}`;
+    const finalName = fileName || `Video.${ext}`;
 
     res.setHeader("Content-Type", contentType);
     res.setHeader("Content-Disposition", `attachment; filename="${finalName}"`);
+
     if (stream.headers["content-length"]) {
       res.setHeader("Content-Length", stream.headers["content-length"]);
     }
+
+    let hasData = false;
+    stream.on("data", () => (hasData = true));
+    stream.on("end", () => {
+      if (!hasData) {
+        console.warn("⚠️ Proxy stream ended with no data.");
+        res.status(502).end("Empty video stream.");
+      }
+    });
 
     stream.pipe(res);
   }).on("error", (err) => {
