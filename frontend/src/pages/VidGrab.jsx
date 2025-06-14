@@ -52,7 +52,7 @@ const VidGrab = () => {
 
     try {
       const res = await fetch(
-        `http://localhost:3000/api/download?url=${encodeURIComponent(
+        `https://vidgrab-w2ne.onrender.com/api/download?url=${encodeURIComponent(
           url
         )}`
       );
@@ -120,7 +120,7 @@ const VidGrab = () => {
   };
 
   const handleDownloadFormat = (downloadUrl) => {
-    const proxyUrl = `http://localhost:3000/api/proxy?url=${encodeURIComponent(
+    const proxyUrl = `https://vidgrab-w2ne.onrender.com/api/proxy?url=${encodeURIComponent(
       downloadUrl
     )}`;
     const link = document.createElement("a");
