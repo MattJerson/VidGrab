@@ -22,181 +22,52 @@ app.get("/api/download", async (req, res) => {
     return res.status(400).json({ error: "Missing 'url' parameter" });
 
   try {
-    // 🔹 TikTok via RapidAPI
-    if (videoUrl.includes("tiktok.com")) {
-      console.log("[RapidAPI] Resolving TikTok:", videoUrl);
+    console.log("[yt-dlp] Resolving:", videoUrl);
 
-      const tiktokRes = await fetch(
-        `https://tiktok-api23.p.rapidapi.com/api/download/video?url=${encodeURIComponent(
-          videoUrl
-        )}`,
-        {
-          method: "GET",
-          headers: {
-            "x-rapidapi-key":
-              "6f78b0d526mshcfc5f22a99191bcp14dcb9jsn3532c6f01716",
-            "x-rapidapi-host": "tiktok-api23.p.rapidapi.com",
-          },
-        }
-      );
+    const { stdout } = await asyncExec(
+      `yt-dlp -j --no-warnings --merge-output-format mp4 "${videoUrl}"`
+    );
+    const data = JSON.parse(stdout);
 
-      if (!tiktokRes.ok) {
-        console.error("[RapidAPI] TikTok API failed:", tiktokRes.status);
-        return res
-          .status(429)
-          .json({ error: "TikTok API rate limit exceeded. Try again later." });
-      }
+    const formats = (data.formats || [])
+      .filter(
+        (f) =>
+          f.url && f.ext === "mp4" && f.vcodec !== "none" && f.acodec !== "none"
+      )
+      .map((f) => ({
+        url: f.url,
+        format_id: f.format_id,
+        ext: f.ext,
+        quality:
+          f.format_note || f.height
+            ? `${f.height}p`
+            : f.resolution || "Default",
+        size: f.filesize
+          ? `${(f.filesize / 1048576).toFixed(2)} MB`
+          : "Unknown",
+      }));
 
-      const result = await tiktokRes.json();
-      const formats = [];
-
-      if (result.play) {
-        formats.push({
-          url: result.play,
-          format_id: "mp4",
-          ext: "mp4",
-          quality: "No Watermark",
-          size: "Unknown",
-        });
-      }
-
-      if (result.play_watermark) {
-        formats.push({
-          url: result.play_watermark,
-          format_id: "mp4",
-          ext: "mp4",
-          quality: "With Watermark",
-          size: "Unknown",
-        });
-      }
-
-      return res.json({
-        title: "TikTok Video",
-        thumbnail: "",
-        formats,
-      });
-    }
-
-    // 🔹 YouTube via ytdl-core
-    if (videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be")) {
-      console.log("[YouTube] Using BDBots API:", videoUrl);
-
-      try {
-        // 🔹 Step 1: Try BDBots API first
-        const bdbotsRes = await fetch(
-          `https://yt.bdbots.xyz/dl?url=${encodeURIComponent(videoUrl)}`
-        );
-        if (!bdbotsRes.ok) {
-          throw new Error(`BDBots failed: ${bdbotsRes.status}`);
-        }
-
-        const data = await bdbotsRes.json();
-        const formats = (data.available_formats || []).map((f) => ({
-          url: f.url,
-          format_id: f.format_id,
-          ext: f.extension,
-          quality: f.quality || `${f.width || ""}x${f.height || ""}`,
-          size: f.file_size || "Unknown",
-        }));
-
-        return res.json({
-          title: data.video_info.title || "YouTube Video",
-          thumbnail: data.video_info.thumbnail || "",
-          formats,
-        });
-      } catch (err) {
-        console.warn("[BDBots API] failed:", err.message);
-        // 🔸 Step 2: Fallback to ytdl-core
-        try {
-          if (!ytdl.validateURL(videoUrl)) {
-            throw new Error("Invalid YouTube URL");
-          }
-
-          const info = (await ytdl.getInfo(videoUrl)).videoDetails;
-          const protocol = req.protocol || "http";
-
-          return res.json({
-            title: info.title || "YouTube Video",
-            thumbnail: info.thumbnails?.[2]?.url || "",
-            formats: [
-              {
-                url: `${protocol}://${
-                  req.headers.host
-                }/api/stream/mp4?url=${encodeURIComponent(videoUrl)}`,
-                format_id: "mp4",
-                ext: "mp4",
-                quality: "highest",
-                size: "Streaming",
-              },
-            ],
-          });
-        } catch (e) {
-          console.error("[ytdl-core] also failed:", e.message);
-          return res
-            .status(500)
-            .json({ error: "Failed to resolve YouTube video" });
-        }
-      }
-    }
-
-    // 🔹 Instagram & Facebook via yt-dlp
-    if (
-      videoUrl.includes("instagram.com") ||
-      videoUrl.includes("facebook.com")
-    ) {
-      console.log("[yt-dlp] Resolving IG/FB:", videoUrl);
-
-      const { stdout } = await asyncExec(
-        `python -m yt_dlp -j --no-warnings --merge-output-format mp4 "${videoUrl}"`
-      );
-      const json = JSON.parse(stdout);
-
-      const formats = (json.formats || [])
-        .filter(
-          (f) =>
-            f.url &&
-            f.ext === "mp4" &&
-            f.vcodec !== "none" &&
-            f.acodec !== "none"
-        )
-        .map((f) => ({
-          url: f.url,
-          format_id: f.format_id,
-          ext: f.ext,
-          quality: f.format_note || (f.height ? `${f.height}p` : "Default"),
-          size: f.filesize
-            ? `${(f.filesize / 1048576).toFixed(2)} MB`
-            : "Unknown",
-        }));
-
-      return res.json({
-        title: json.title || "Video",
-        thumbnail: json.thumbnail || json.thumbnails?.[0]?.url || "",
-        formats,
-      });
-    }
-
-    // 🔸 Unknown platform fallback
-    return res.status(400).json({
-      error:
-        "Unsupported platform. Only YouTube, TikTok, IG, FB are supported.",
+    return res.json({
+      title: data.title || "Video",
+      thumbnail: data.thumbnail || data.thumbnails?.[0]?.url || "",
+      formats,
     });
   } catch (err) {
-    console.error("download error (full):", err);
-
-    const message = err.message || "";
+    console.error("yt-dlp error:", err.message);
 
     if (
-      message.includes("Sign in to confirm") ||
-      message.includes("captcha") ||
-      message.includes("cookies")
+      err.message.includes("Sign in to confirm") ||
+      err.message.includes("captcha") ||
+      err.message.includes("cookies")
     ) {
       return res.status(403).json({
         error: "This video requires login or CAPTCHA. Please try another one.",
       });
     }
 
-    return res.status(500).json({ error: "Failed to retrieve video info." });
+    return res
+      .status(500)
+      .json({ error: "Failed to retrieve video info using yt-dlp." });
   }
 });
 
