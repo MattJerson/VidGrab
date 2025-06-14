@@ -217,15 +217,14 @@ app.get("/api/stream/mp4", async (req, res) => {
   }).pipe(res);
 });
 
-const { http, https } = require("follow-redirects");
+const fetch = require("node-fetch");
 
-app.get("/api/proxy", (req, res) => {
+app.get("/api/proxy", async (req, res) => {
   const mediaUrl = req.query.url;
-  const fileName = req.query.name || null;
+  const fileName = req.query.name || `video.mp4`;
 
   if (!mediaUrl) return res.status(400).send("Missing media URL");
 
-  // 🔹 Dynamically apply Referer/Origin headers based on media source
   const getHeadersForPlatform = (url) => {
     if (url.includes("tiktok.com")) {
       return {
@@ -251,52 +250,42 @@ app.get("/api/proxy", (req, res) => {
         Origin: "https://www.instagram.com/",
       };
     }
-    return {}; // default fallback
+    return {};
   };
 
   const platformHeaders = getHeadersForPlatform(mediaUrl);
 
-  const options = {
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
-      Accept: "*/*",
-      "Accept-Encoding": "identity",
-      Connection: "keep-alive",
-      ...platformHeaders,
-    },
-  };
+  try {
+    const response = await fetch(mediaUrl, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+        Accept: "*/*",
+        "Accept-Encoding": "identity",
+        Connection: "keep-alive",
+        ...platformHeaders,
+      },
+    });
 
-  const get = mediaUrl.startsWith("https") ? https.get : http.get;
-  console.log("Proxying:", mediaUrl);
+    if (!response.ok || !response.body) {
+      throw new Error(`Failed to fetch media: ${response.status}`);
+    }
 
-  get(mediaUrl, options, (stream) => {
     const contentType =
-      stream.headers["content-type"] || "application/octet-stream";
+      response.headers.get("content-type") || "application/octet-stream";
+    const contentLength = response.headers.get("content-length");
     const ext = contentType.split("/")[1] || "mp4";
-    const finalName = fileName || `Video.${ext}`;
+    const finalName = fileName || `video.${ext}`;
 
     res.setHeader("Content-Type", contentType);
     res.setHeader("Content-Disposition", `attachment; filename="${finalName}"`);
+    if (contentLength) res.setHeader("Content-Length", contentLength);
 
-    if (stream.headers["content-length"]) {
-      res.setHeader("Content-Length", stream.headers["content-length"]);
-    }
-
-    let hasData = false;
-    stream.on("data", () => (hasData = true));
-    stream.on("end", () => {
-      if (!hasData) {
-        console.warn("⚠️ Proxy stream ended with no data.");
-        res.status(502).end("Empty video stream.");
-      }
-    });
-
-    stream.pipe(res);
-  }).on("error", (err) => {
+    response.body.pipe(res);
+  } catch (err) {
     console.error("Proxy error:", err.message);
     res.status(500).send("Proxy failed");
-  });
+  }
 });
 
 app.listen(port, () => {
