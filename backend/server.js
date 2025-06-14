@@ -217,75 +217,48 @@ app.get("/api/stream/mp4", async (req, res) => {
   }).pipe(res);
 });
 
-app.get("/api/proxy", async (req, res) => {
+const { http, https } = require("follow-redirects");
+
+app.get("/api/proxy", (req, res) => {
   const mediaUrl = req.query.url;
-  const fileName = req.query.name || `video.mp4`;
+  const fileName = req.query.name || null;
 
   if (!mediaUrl) return res.status(400).send("Missing media URL");
 
-  const getHeadersForPlatform = (url) => {
-    if (url.includes("tiktok.com")) {
-      return {
-        Referer: "https://www.tiktok.com/",
-        Origin: "https://www.tiktok.com/",
-      };
-    }
-    if (url.includes("youtube.com") || url.includes("googlevideo.com")) {
-      return {
-        Referer: "https://www.youtube.com/",
-        Origin: "https://www.youtube.com/",
-      };
-    }
-    if (url.includes("facebook.com") || url.includes("fbcdn.net")) {
-      return {
-        Referer: "https://www.facebook.com/",
-        Origin: "https://www.facebook.com/",
-      };
-    }
-    if (url.includes("instagram.com") || url.includes("cdninstagram")) {
-      return {
-        Referer: "https://www.instagram.com/",
-        Origin: "https://www.instagram.com/",
-      };
-    }
-    return {};
+  const options = {
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+      Referer: "https://www.tiktok.com/",
+      Origin: "https://www.tiktok.com",
+      Accept: "*/*",
+      "Accept-Encoding": "identity",
+      Connection: "keep-alive",
+    },
   };
 
-  const platformHeaders = getHeadersForPlatform(mediaUrl);
+  const get = mediaUrl.startsWith("https") ? https.get : http.get;
+  console.log("Proxying:", mediaUrl);
 
-  try {
-    const response = await fetch(mediaUrl, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
-        Accept: "*/*",
-        "Accept-Encoding": "identity",
-        Connection: "keep-alive",
-        ...platformHeaders,
-      },
-    });
-
-    if (!response.ok || !response.body) {
-      throw new Error(`Failed to fetch media: ${response.status}`);
-    }
-
+  get(mediaUrl, options, (stream) => {
     const contentType =
-      response.headers.get("content-type") || "application/octet-stream";
-    const contentLength = response.headers.get("content-length");
+      stream.headers["content-type"] || "application/octet-stream";
     const ext = contentType.split("/")[1] || "mp4";
-    const finalName = fileName || `video.${ext}`;
+    const finalName = fileName || `Video.${ext}`;
 
     res.setHeader("Content-Type", contentType);
     res.setHeader("Content-Disposition", `attachment; filename="${finalName}"`);
-    if (contentLength) res.setHeader("Content-Length", contentLength);
+    if (stream.headers["content-length"]) {
+      res.setHeader("Content-Length", stream.headers["content-length"]);
+    }
 
-    response.body.pipe(res);
-  } catch (err) {
+    stream.pipe(res);
+  }).on("error", (err) => {
     console.error("Proxy error:", err.message);
     res.status(500).send("Proxy failed");
-  }
+  });
 });
 
-app.listen(port, "0.0.0.0", () => {
-  console.log(`✅ Server running on port ${port}`);
+app.listen(port, () => {
+  console.log(`Server running at http://localhost:${port}`);
 });
