@@ -221,6 +221,8 @@ const { http, https } = require("follow-redirects");
 
 app.get("/api/proxy", (req, res) => {
   const mediaUrl = req.query.url;
+  const fileName = req.query.name || null;
+
   if (!mediaUrl) return res.status(400).send("Missing media URL");
 
   const options = {
@@ -235,19 +237,17 @@ app.get("/api/proxy", (req, res) => {
     },
   };
 
-  // 🧠 Detect protocol from URL
   const get = mediaUrl.startsWith("https") ? https.get : http.get;
-
   console.log("Proxying:", mediaUrl);
 
   get(mediaUrl, options, (stream) => {
     const contentType =
       stream.headers["content-type"] || "application/octet-stream";
     const ext = contentType.split("/")[1] || "mp4";
+    const finalName = fileName || `video.${ext}`;
 
     res.setHeader("Content-Type", contentType);
-    res.setHeader("Content-Disposition", `attachment; filename="video.${ext}"`);
-
+    res.setHeader("Content-Disposition", `attachment; filename="${finalName}"`);
     if (stream.headers["content-length"]) {
       res.setHeader("Content-Length", stream.headers["content-length"]);
     }

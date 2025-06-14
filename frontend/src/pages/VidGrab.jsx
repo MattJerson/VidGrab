@@ -119,13 +119,15 @@ const VidGrab = () => {
     }
   };
 
-  const handleDownloadFormat = (downloadUrl) => {
+  const handleDownloadFormat = (downloadUrl, ext = "mp4") => {
+    const filename = `video_${Date.now()}.${ext}`;
     const proxyUrl = `https://vidgrab-w2ne.onrender.com/api/proxy?url=${encodeURIComponent(
       downloadUrl
-    )}`;
+    )}&name=${filename}`;
+
     const link = document.createElement("a");
     link.href = proxyUrl;
-    link.setAttribute("download", true);
+    link.setAttribute("download", filename); // 👈 explicitly set filename
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -278,7 +280,9 @@ const VidGrab = () => {
                                 </span>
                               </div>
                               <button
-                                onClick={() => handleDownloadFormat(format.url)}
+                                onClick={() =>
+                                  handleDownloadFormat(format.url, format.ext)
+                                }
                                 className="px-4 py-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-lg font-medium hover:from-purple-600 hover:to-blue-600 transition-all duration-300 flex items-center space-x-2"
                               >
                                 <Download className="w-4 h-4" />
