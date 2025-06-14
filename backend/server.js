@@ -6,13 +6,13 @@ const { exec } = require("child_process");
 const util = require("util");
 const asyncExec = util.promisify(exec);
 
-const fs = require("fs");
-const path = require("path");
-const ffmpeg = require("fluent-ffmpeg");
-const tmp = require("tmp");
-
 const app = express();
 const port = process.env.PORT || 3000;
+
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  next();
+});
 
 app.use(cors());
 
