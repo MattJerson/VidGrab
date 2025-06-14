@@ -88,46 +88,39 @@ app.get("/api/stream/mp4", async (req, res) => {
   }).pipe(res);
 });
 
-const { http, https } = require("follow-redirects");
+const got = require("got");
 
-app.get("/api/proxy", (req, res) => {
+app.get("/api/proxy", async (req, res) => {
   const mediaUrl = req.query.url;
-  const fileName = req.query.name || null;
+  const fileName = req.query.name || "video.mp4";
 
   if (!mediaUrl) return res.status(400).send("Missing media URL");
 
-  const options = {
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
-      Referer: "https://www.tiktok.com/",
-      Origin: "https://www.tiktok.com",
-      Accept: "*/*",
-      "Accept-Encoding": "identity",
-      Connection: "keep-alive",
-    },
-  };
-
-  const get = mediaUrl.startsWith("https") ? https.get : http.get;
   console.log("Proxying:", mediaUrl);
 
-  get(mediaUrl, options, (stream) => {
-    const contentType =
-      stream.headers["content-type"] || "application/octet-stream";
-    const ext = contentType.split("/")[1] || "mp4";
-    const finalName = fileName || `Video.${ext}`;
+  try {
+    const stream = got.stream(mediaUrl, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        Referer: "https://www.tiktok.com/",
+        Origin: "https://www.tiktok.com",
+        Accept: "*/*",
+        Connection: "keep-alive",
+      },
+    });
 
-    res.setHeader("Content-Type", contentType);
-    res.setHeader("Content-Disposition", `attachment; filename="${finalName}"`);
-    if (stream.headers["content-length"]) {
-      res.setHeader("Content-Length", stream.headers["content-length"]);
-    }
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+    res.setHeader("Content-Type", "video/mp4");
 
-    stream.pipe(res);
-  }).on("error", (err) => {
+    stream.pipe(res).on("error", (err) => {
+      console.error("Streaming error:", err.message);
+      res.status(500).send("Stream error");
+    });
+  } catch (err) {
     console.error("Proxy error:", err.message);
     res.status(500).send("Proxy failed");
-  });
+  }
 });
 
 app.listen(port, () => {
