@@ -52,7 +52,7 @@ const VidGrab = () => {
 
     try {
       const res = await fetch(
-        `https://vidgrab-w2ne.onrender.com/api/download?url=${encodeURIComponent(
+        `http://localhost:3000/api/download?url=${encodeURIComponent(
           url
         )}`
       );
@@ -120,7 +120,7 @@ const VidGrab = () => {
   };
 
   const handleDownloadFormat = (downloadUrl) => {
-    const proxyUrl = `https://vidgrab-w2ne.onrender.com/api/proxy?url=${encodeURIComponent(
+    const proxyUrl = `http://localhost:3000/api/proxy?url=${encodeURIComponent(
       downloadUrl
     )}`;
     const link = document.createElement("a");
@@ -135,7 +135,7 @@ const VidGrab = () => {
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-32 w-full max-w-[320px] h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-32 w-full max-w-[320px] h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
+        <div className="absolute bottom-100 -left-32 w-full max-w-[320px] h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-[320px] h-80 bg-indigo-500 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-pulse"></div>
       </div>
 
@@ -168,15 +168,15 @@ const VidGrab = () => {
         <section className="container mx-auto px-4 sm:px-6 py-20 text-center">
           <div className="max-w-4xl mx-auto">
             <h1 className="text-3xl sm:text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
-              Download Videos from
+              Download Videos From
               <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
                 {" "}
                 Anywhere
               </span>
             </h1>
             <p className="text-base sm:text-lg text-gray-300 mb-12 max-w-2xl mx-auto">
-              Fast, free, and secure video downloads from YouTube, Instagram,
-              Facebook, and TikTok. No registration required.
+              Fast, free, & secure video downloads from YouTube, Instagram,
+              Facebook, & TikTok. No registration required.
             </p>
 
             <div className="flex flex-wrap justify-center items-center gap-6 mb-12">
@@ -211,10 +211,10 @@ const VidGrab = () => {
                   className="w-full sm:w-auto sm:absolute sm:top-2 sm:right-2 px-6 py-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-xl font-semibold hover:from-purple-600 hover:to-blue-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                 >
                   {loading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="w-5 h-7.5 animate-spin" />
                   ) : (
                     <>
-                      <Download className="w-5 h-5" />
+                      <Download className="w-5 h-7.5" />
                       <span>Download</span>
                     </>
                   )}
@@ -246,7 +246,7 @@ const VidGrab = () => {
                       <div className="flex items-center space-x-2 mb-4">
                         <CheckCircle className="w-5 h-5 text-green-400" />
                         <span className="text-green-400">
-                          Ready to download
+                          Ready To Download
                         </span>
                         {detectPlatform(url) && (
                           <div className="flex items-center space-x-1">
@@ -316,11 +316,46 @@ const VidGrab = () => {
               Why Choose VidGrab?
             </h2>
             <p className="text-xl text-gray-300">
-              Fast, reliable, and completely free video downloads
+              Fast, reliable, & completely free video downloads
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Feature cards unchanged */}
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-8 text-center hover:bg-white/15 transition-all duration-300">
+              <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <Download className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-4">
+                Lightning Fast
+              </h3>
+              <p className="text-gray-300">
+                Download videos in seconds with our optimized servers and
+                advanced processing technology.
+              </p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-8 text-center hover:bg-white/15 transition-all duration-300">
+              <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-teal-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <CheckCircle className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-4">
+                Multiple Formats
+              </h3>
+              <p className="text-gray-300">
+                Choose from various quality options and formats to suit your
+                needs and device compatibility.
+              </p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-8 text-center hover:bg-white/15 transition-all duration-300">
+              <div className="w-16 h-16 bg-gradient-to-r from-pink-500 to-red-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <Play className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-4">
+                No Registration
+              </h3>
+              <p className="text-gray-300">
+                Start downloading immediately without creating accounts or
+                providing personal information.
+              </p>
+            </div>
           </div>
         </section>
 
@@ -335,7 +370,38 @@ const VidGrab = () => {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Steps unchanged */}
+            <div className="text-center">
+              <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 text-white font-bold text-2xl">
+                1
+              </div>
+              <h3 className="text-xl font-bold text-white mb-4">Copy URL</h3>
+              <p className="text-gray-300">
+                Copy the video URL from YouTube, Instagram, Facebook, or TikTok
+              </p>
+            </div>
+
+            <div className="text-center">
+              <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 text-white font-bold text-2xl">
+                2
+              </div>
+              <h3 className="text-xl font-bold text-white mb-4">
+                Paste & Process
+              </h3>
+              <p className="text-gray-300">
+                Paste the URL in our input field and click the download button
+              </p>
+            </div>
+
+            <div className="text-center">
+              <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 text-white font-bold text-2xl">
+                3
+              </div>
+              <h3 className="text-xl font-bold text-white mb-4">Download</h3>
+              <p className="text-gray-300">
+                Choose your preferred format and quality, then download
+                instantly
+              </p>
+            </div>
           </div>
         </section>
 
