@@ -79,30 +79,64 @@ app.get("/api/download", async (req, res) => {
 
     // 🔹 YouTube via ytdl-core
     if (videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be")) {
-      console.log("[ytdl-core] Resolving YouTube:", videoUrl);
+      console.log("[YouTube] Using BDBots API:", videoUrl);
 
-      if (!ytdl.validateURL(videoUrl)) {
-        return res.status(400).json({ error: "Invalid YouTube URL" });
+      try {
+        // 🔹 Step 1: Try BDBots API first
+        const bdbotsRes = await fetch(
+          `https://yt.bdbots.xyz/dl?url=${encodeURIComponent(videoUrl)}`
+        );
+        if (!bdbotsRes.ok) {
+          throw new Error(`BDBots failed: ${bdbotsRes.status}`);
+        }
+
+        const data = await bdbotsRes.json();
+        const formats = (data.available_formats || []).map((f) => ({
+          url: f.url,
+          format_id: f.format_id,
+          ext: f.extension,
+          quality: f.quality || `${f.width || ""}x${f.height || ""}`,
+          size: f.file_size || "Unknown",
+        }));
+
+        return res.json({
+          title: data.video_info.title || "YouTube Video",
+          thumbnail: data.video_info.thumbnail || "",
+          formats,
+        });
+      } catch (err) {
+        console.warn("[BDBots API] failed:", err.message);
+        // 🔸 Step 2: Fallback to ytdl-core
+        try {
+          if (!ytdl.validateURL(videoUrl)) {
+            throw new Error("Invalid YouTube URL");
+          }
+
+          const info = (await ytdl.getInfo(videoUrl)).videoDetails;
+          const protocol = req.protocol || "http";
+
+          return res.json({
+            title: info.title || "YouTube Video",
+            thumbnail: info.thumbnails?.[2]?.url || "",
+            formats: [
+              {
+                url: `${protocol}://${
+                  req.headers.host
+                }/api/stream/mp4?url=${encodeURIComponent(videoUrl)}`,
+                format_id: "mp4",
+                ext: "mp4",
+                quality: "highest",
+                size: "Streaming",
+              },
+            ],
+          });
+        } catch (e) {
+          console.error("[ytdl-core] also failed:", e.message);
+          return res
+            .status(500)
+            .json({ error: "Failed to resolve YouTube video" });
+        }
       }
-
-      const info = (await ytdl.getInfo(videoUrl)).videoDetails;
-      const protocol = req.protocol || "http";
-
-      return res.json({
-        title: info.title || "YouTube Video",
-        thumbnail: info.thumbnails?.[2]?.url || "",
-        formats: [
-          {
-            url: `${protocol}://${
-              req.headers.host
-            }/api/stream/mp4?url=${encodeURIComponent(videoUrl)}`,
-            format_id: "mp4",
-            ext: "mp4",
-            quality: "highest",
-            size: "Streaming",
-          },
-        ],
-      });
     }
 
     // 🔹 Instagram & Facebook via yt-dlp
