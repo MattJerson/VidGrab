@@ -25,7 +25,7 @@ app.get("/api/download", async (req, res) => {
     console.log("[yt-dlp] Resolving:", videoUrl);
 
     const { stdout } = await asyncExec(
-      `yt-dlp -j --no-warnings --cookies cookies.txt --merge-output-format mp4 "${videoUrl}"`
+      `yt-dlp -j --no-warnings --merge-output-format mp4 "${videoUrl}"`
     );
     const data = JSON.parse(stdout);
 
