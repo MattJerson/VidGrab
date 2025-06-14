@@ -150,6 +150,8 @@ app.get("/api/download", async (req, res) => {
   } catch (err) {
     console.error("download error (full):", err);
 
+    const message = err.message || "";
+
     if (
       message.includes("Sign in to confirm") ||
       message.includes("captcha") ||
