@@ -1,14 +1,16 @@
-const express = require("express");
-const cors = require("cors");
-const fetch = require("node-fetch");
-const ytdl = require("@distube/ytdl-core");
-const { exec } = require("child_process");
-const util = require("util");
-const asyncExec = util.promisify(exec);
+// Import required modules
+const express = require("express"); // Web framework
+const cors = require("cors"); // Middleware to handle Cross-Origin requests
+const fetch = require("node-fetch"); // For HTTP requests (not used directly here but may be used elsewhere)
+const ytdl = require("@distube/ytdl-core"); // Used to stream YouTube video (optional route)
+const { exec } = require("child_process"); // For running shell commands
+const util = require("util"); // To promisify exec
+const asyncExec = util.promisify(exec); // Promisified exec for async/await usage
 
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Allow all origins (CORS config)
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   next();
@@ -16,6 +18,11 @@ app.use((req, res, next) => {
 
 app.use(cors());
 
+/**
+ * GET /api/download
+ * Description: Uses yt-dlp to retrieve video info (title, formats, thumbnail) for the given URL.
+ * Works for Facebook, Instagram, YouTube (with cookies), TikTok (with cookies).
+ */
 app.get("/api/download", async (req, res) => {
   const videoUrl = req.query.url;
   if (!videoUrl)
@@ -24,11 +31,13 @@ app.get("/api/download", async (req, res) => {
   try {
     console.log("[yt-dlp] Resolving:", videoUrl);
 
+    // Run yt-dlp in JSON mode to get video metadata
     const { stdout } = await asyncExec(
       `yt-dlp -j --no-warnings --merge-output-format mp4 "${videoUrl}"`
     );
     const data = JSON.parse(stdout);
 
+    // Filter formats to valid downloadable mp4 formats with both audio & video
     const formats = (data.formats || [])
       .filter(
         (f) =>
@@ -55,6 +64,7 @@ app.get("/api/download", async (req, res) => {
   } catch (err) {
     console.error("yt-dlp error:", err.message);
 
+    // Handle common yt-dlp errors that require login/cookies
     if (
       err.message.includes("Sign in to confirm") ||
       err.message.includes("captcha") ||
@@ -71,6 +81,11 @@ app.get("/api/download", async (req, res) => {
   }
 });
 
+/**
+ * GET /api/stream/mp4
+ * Description: Streams a YouTube video directly using ytdl-core (used as a fallback or test route).
+ * Note: This does not support 1080p+ without merging audio/video.
+ */
 app.get("/api/stream/mp4", async (req, res) => {
   const { url } = req.query;
   if (!url || !ytdl.validateURL(url)) {
@@ -82,12 +97,19 @@ app.get("/api/stream/mp4", async (req, res) => {
 
   res.header("Content-Disposition", `attachment; filename="${fileName}.mp4"`);
   res.header("Content-Type", "video/mp4");
+
+  // Stream audio + video combined (lower quality than yt-dlp + ffmpeg)
   ytdl(url, {
     quality: "highest",
     filter: "audioandvideo",
   }).pipe(res);
 });
 
+/**
+ * GET /api/proxy
+ * Description: Proxies video file URLs to bypass CORS and allow downloading via the frontend.
+ * This is required for TikTok, Facebook, etc. to serve MP4s with custom headers.
+ */
 const { http, https } = require("follow-redirects");
 
 app.get("/api/proxy", (req, res) => {
@@ -130,6 +152,7 @@ app.get("/api/proxy", (req, res) => {
   });
 });
 
+// Start the Express server
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });

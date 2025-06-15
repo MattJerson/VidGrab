@@ -10,12 +10,26 @@ import {
   Facebook,
 } from "lucide-react";
 
+/**
+ * VidGrab - A video downloader component for multiple platforms
+ * @component
+ * @returns {JSX.Element} The VidGrab application UI
+ */
 const VidGrab = () => {
-  const [url, setUrl] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [videoData, setVideoData] = useState(null);
-  const [error, setError] = useState("");
+  // State management
+  const [url, setUrl] = useState(""); // Stores the video URL input
+  const [loading, setLoading] = useState(false); // Tracks loading state
+  const [videoData, setVideoData] = useState(null); // Stores fetched video data
+  const [error, setError] = useState(""); // Stores error messages
 
+  /**
+   * Platform icons configuration
+   * @type {Object}
+   * @property {JSX.Element} youtube - YouTube icon component
+   * @property {JSX.Element} instagram - Instagram icon component
+   * @property {JSX.Element} facebook - Facebook icon component
+   * @property {JSX.Element} tiktok - Custom TikTok SVG icon
+   */
   const platformIcons = {
     youtube: <Youtube className="w-6 h-6 text-red-500" />,
     instagram: <Instagram className="w-6 h-6 text-pink-500" />,
@@ -30,6 +44,11 @@ const VidGrab = () => {
     ),
   };
 
+  /**
+   * Detects the platform from a given URL
+   * @param {string} url - The video URL to analyze
+   * @returns {string|null} Platform name or null if not recognized
+   */
   const detectPlatform = (url) => {
     if (url.includes("youtube.com") || url.includes("youtu.be"))
       return "youtube";
@@ -40,17 +59,25 @@ const VidGrab = () => {
     return null;
   };
 
+  /**
+   * Handles the video download process
+   * @async
+   * @returns {Promise<void>}
+   */
   const handleDownload = async () => {
+    // Validate URL input
     if (!url.trim()) {
       setError("Please enter a video URL");
       return;
     }
 
+    // Reset states and set loading
     setLoading(true);
     setError("");
     setVideoData(null);
 
     try {
+      // Fetch video data from API
       const res = await fetch(
         `https://vidgrab-w2ne.onrender.com/api/download?url=${encodeURIComponent(
           url
@@ -60,12 +87,15 @@ const VidGrab = () => {
 
       const data = await res.json();
 
-      // 🔁 Normalize TikTok-style data into formats array
+      // Normalize different platform response formats
       let formats = [];
 
+      // Handle standard formats array
       if (data.formats && Array.isArray(data.formats)) {
         formats = data.formats;
-      } else if (data.play || data.play_watermark) {
+      }
+      // Handle TikTok-style response
+      else if (data.play || data.play_watermark) {
         if (data.play) {
           formats.push({
             url: data.play,
@@ -82,6 +112,7 @@ const VidGrab = () => {
         }
       }
 
+      // Filter allowed qualities
       const allowedQualities = [
         "360p",
         "480p",
@@ -96,16 +127,19 @@ const VidGrab = () => {
         return allowedQualities.includes(quality);
       });
 
+      // Fallback to first 3 formats if none match allowed qualities
       if (filteredFormats.length === 0 && formats.length > 0) {
         filteredFormats = formats.slice(0, 3);
       }
 
+      // Sort formats by quality (highest first)
       filteredFormats.sort((a, b) => {
         const qa = parseInt(a.quality);
         const qb = parseInt(b.quality);
         return isNaN(qb) ? -1 : qb - qa;
       });
 
+      // Update state with processed video data
       setVideoData({
         title: data.title || "Video Title",
         thumbnail: data.thumbnail || null,
@@ -119,29 +153,40 @@ const VidGrab = () => {
     }
   };
 
+  /**
+   * Handles downloading a specific video format
+   * @param {string} downloadUrl - The direct URL to the video file
+   * @param {string} [ext="mp4"] - File extension
+   */
   const handleDownloadFormat = (downloadUrl, ext = "mp4") => {
     const filename = `video_${Date.now()}.${ext}`;
+    // Use proxy to handle download with proper filename
     const proxyUrl = `https://vidgrab-w2ne.onrender.com/api/proxy?url=${encodeURIComponent(
       downloadUrl
     )}&name=${filename}`;
 
+    // Create temporary link to trigger download
     const link = document.createElement("a");
     link.href = proxyUrl;
-    link.setAttribute("download", filename); // 👈 explicitly set filename
+    link.setAttribute("download", filename);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
+  // Render UI
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+      {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-32 w-full max-w-[320px] h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
         <div className="absolute bottom-100 -left-32 w-full max-w-[320px] h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-[320px] h-80 bg-indigo-500 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-pulse"></div>
       </div>
 
+      {/* Main content container */}
       <div className="relative z-10">
+        {/* Header section */}
         <header className="container mx-auto px-4 sm:px-6 py-8">
           <nav className="flex flex-wrap items-center justify-between">
             <div className="flex items-center space-x-2">
@@ -167,6 +212,7 @@ const VidGrab = () => {
           </nav>
         </header>
 
+        {/* Main hero section */}
         <section className="container mx-auto px-4 sm:px-6 py-20 text-center">
           <div className="max-w-4xl mx-auto">
             <h1 className="text-3xl sm:text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
@@ -181,6 +227,7 @@ const VidGrab = () => {
               Facebook, & TikTok. No registration required.
             </p>
 
+            {/* Platform icons display */}
             <div className="flex flex-wrap justify-center items-center gap-6 mb-12">
               {Object.entries(platformIcons).map(([platform, icon]) => (
                 <div
@@ -197,8 +244,10 @@ const VidGrab = () => {
               ))}
             </div>
 
+            {/* Main input and results area */}
             <div className="max-w-2xl mx-auto">
               <div className="relative flex flex-col sm:flex-row gap-4 sm:gap-0">
+                {/* URL input field */}
                 <input
                   type="url"
                   value={url}
@@ -207,6 +256,7 @@ const VidGrab = () => {
                   className="w-full px-6 py-4 text-lg bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   onKeyPress={(e) => e.key === "Enter" && handleDownload()}
                 />
+                {/* Download button */}
                 <button
                   onClick={handleDownload}
                   disabled={loading}
@@ -223,6 +273,7 @@ const VidGrab = () => {
                 </button>
               </div>
 
+              {/* Error display */}
               {error && (
                 <div className="mt-4 p-4 bg-red-500/20 border border-red-500/30 rounded-xl flex items-center space-x-2 text-red-300">
                   <AlertCircle className="w-5 h-5" />
@@ -230,9 +281,11 @@ const VidGrab = () => {
                 </div>
               )}
 
+              {/* Video results display */}
               {videoData && (
                 <div className="mt-8 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6">
                   <div className="flex flex-col sm:flex-row items-center sm:space-x-4 space-y-4 sm:space-y-0">
+                    {/* Video thumbnail */}
                     {videoData.thumbnail && (
                       <img
                         src={videoData.thumbnail}
@@ -242,14 +295,17 @@ const VidGrab = () => {
                       />
                     )}
                     <div className="flex-1 text-left">
+                      {/* Video title */}
                       <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">
                         {videoData.title || "Video Title"}
                       </h3>
+                      {/* Status indicator */}
                       <div className="flex items-center space-x-2 mb-4">
                         <CheckCircle className="w-5 h-5 text-green-400" />
                         <span className="text-green-400">
                           Ready To Download
                         </span>
+                        {/* Platform icon */}
                         {detectPlatform(url) && (
                           <div className="flex items-center space-x-1">
                             {platformIcons[detectPlatform(url)]}
@@ -257,6 +313,7 @@ const VidGrab = () => {
                         )}
                       </div>
 
+                      {/* Download formats list */}
                       <div className="space-y-2">
                         <h4 className="text-lg font-medium text-white">
                           Here Is Your Download
@@ -267,6 +324,7 @@ const VidGrab = () => {
                               key={index}
                               className="flex flex-col sm:flex-row items-center justify-between bg-white/5 rounded-lg p-3 space-y-3 sm:space-y-0"
                             >
+                              {/* Format information */}
                               <div className="flex items-center space-x-3">
                                 <Play className="w-4 h-4 text-gray-400" />
                                 <span className="text-white font-medium">
@@ -279,6 +337,7 @@ const VidGrab = () => {
                                   {format.size || "Unknown Size"}
                                 </span>
                               </div>
+                              {/* Download button for this format */}
                               <button
                                 onClick={() =>
                                   handleDownloadFormat(format.url, format.ext)
@@ -291,6 +350,7 @@ const VidGrab = () => {
                             </div>
                           ))
                         ) : (
+                          // Fallback when no formats are available
                           <div className="bg-white/5 rounded-lg p-3">
                             <p className="text-gray-400">
                               No formats available or check console for raw data
@@ -314,6 +374,7 @@ const VidGrab = () => {
           </div>
         </section>
 
+        {/* Features section */}
         <section id="features" className="container mx-auto px-4 sm:px-6 py-20">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-white mb-4">
@@ -324,6 +385,7 @@ const VidGrab = () => {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Feature 1 */}
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-8 text-center hover:bg-white/15 transition-all duration-300">
               <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
                 <Download className="w-8 h-8 text-white" />
@@ -336,6 +398,8 @@ const VidGrab = () => {
                 advanced processing technology.
               </p>
             </div>
+
+            {/* Feature 2 */}
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-8 text-center hover:bg-white/15 transition-all duration-300">
               <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-teal-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
                 <CheckCircle className="w-8 h-8 text-white" />
@@ -348,6 +412,8 @@ const VidGrab = () => {
                 needs and device compatibility.
               </p>
             </div>
+
+            {/* Feature 3 */}
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-8 text-center hover:bg-white/15 transition-all duration-300">
               <div className="w-16 h-16 bg-gradient-to-r from-pink-500 to-red-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
                 <Play className="w-8 h-8 text-white" />
@@ -363,6 +429,7 @@ const VidGrab = () => {
           </div>
         </section>
 
+        {/* How it works section */}
         <section
           id="how-it-works"
           className="container mx-auto px-4 sm:px-6 py-20"
@@ -374,6 +441,7 @@ const VidGrab = () => {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Step 1 */}
             <div className="text-center">
               <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 text-white font-bold text-2xl">
                 1
@@ -384,6 +452,7 @@ const VidGrab = () => {
               </p>
             </div>
 
+            {/* Step 2 */}
             <div className="text-center">
               <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 text-white font-bold text-2xl">
                 2
@@ -396,6 +465,7 @@ const VidGrab = () => {
               </p>
             </div>
 
+            {/* Step 3 */}
             <div className="text-center">
               <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 text-white font-bold text-2xl">
                 3
@@ -409,6 +479,7 @@ const VidGrab = () => {
           </div>
         </section>
 
+        {/* Footer section */}
         <footer className="container mx-auto px-4 sm:px-6 py-12 border-t border-white/20">
           <div className="text-center">
             <div className="flex items-center justify-center space-x-2 mb-4">
