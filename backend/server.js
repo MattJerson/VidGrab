@@ -33,7 +33,7 @@ app.get("/api/download", async (req, res) => {
 
     // Run yt-dlp in JSON mode to get video metadata
     const { stdout } = await asyncExec(
-      `yt-dlp -j --no-warnings --merge-output-format mp4 "${videoUrl}"`
+      `yt-dlp --cookies cookies.txt -j --no-warnings --merge-output-format mp4 "${videoUrl}"`
     );
     const data = JSON.parse(stdout);
 
